@@ -58,8 +58,26 @@ module DataStructureTree
 
     class Node 
         attr_accessor :name
+        attr_accessor :operations
+        attr_accessor :marking
         
-        def annotate(operation) end
+        # Annotate the DataStructureTree node with the operation
+        def annotate(operation, pt_node) 
+            # Add the operation to the set of the ProcessTreeNode that executed it
+            if !operations.include? pt_node
+                operations[pt_node] = Set.new
+            end 
+            operations[pt_node].add(operation)
+        end
+
+        def mark(operation, pt_node) 
+            # Add the operation to the set of the ProcessTreeNode that executed it
+            if !operations.include? pt_node
+                operations[pt_node] = Set.new
+            end 
+            operations[pt_node].add(operation)
+        end
+        
         def inspect = to_s
     end
 
@@ -67,15 +85,12 @@ module DataStructureTree
         def initialize(name)
             @name = name
             @operations = {}
+            @marking = {}
         end
         
         def to_s = "Simple(#{@name}, Operations: #{@operations})"
 
         def contains?(other_node_name) = @name == other_node_name
-
-        def annotate(operation)
-        
-        end
     end
 
     class ComplexNode < Node 
@@ -83,6 +98,10 @@ module DataStructureTree
         attr_accessor :members
 
         def contains?(other_node_name) = @members.include? other_node_name
+        
+        def mark(operation, node) 
+        end
+    
     end
 
     class HashNode < ComplexNode
@@ -92,10 +111,7 @@ module DataStructureTree
             @operations = {}
             @children = children
             # Contains all nodes that write to the node or a specific subtree
-            @mark = []
-            # Contains all nodes that write to the node or a specific subtree
-            # Signifies that the whole subtree is marked (due to the actual target being unclear (dynamic indexing))
-            @mark_all = []
+            @marking = {}
             # Stores the name of all child nodes
             @members = Set.new()
             @members.add name
@@ -117,6 +133,8 @@ module DataStructureTree
             @name = name
             @operations = {}
             @children = children
+            # Contains all nodes that write to the node or a specific subtree
+            @marking = {}
             @members = Set.new([name])
             children.each do |child|
                 @members.add(child.name)

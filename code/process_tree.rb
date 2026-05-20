@@ -21,10 +21,12 @@ module ProcessTree
 
     class Gateway 
         def initialize(children)
-            @children = children 
+            @children = children
+            @statements = []
         end
 
-        attr_reader :children
+        attr_accessor :children
+        attr_accessor :statements
     end
 
     class ParallelGateway < Gateway
@@ -38,6 +40,7 @@ module ProcessTree
             @children = children
             # Each condition is a statement
             @conditions = conditions
+            @statements = @conditions
         end
     end
 
