@@ -3,6 +3,7 @@ require "./process_tree"
 require "./data_structure_tree.rb"
 require "./concurrency_candidates.rb"
 
+# Computes whether two operations on a node are conflicting
 def conflicting?(op_1, op_2)
     type_1 = op_1.name.to_s.split('_')[0]
     type_2 = op_2.name.to_s.split('_')[0]
@@ -224,7 +225,7 @@ def compute_conflicts(operand, operation, concurrency_candidate_set, source)
         concurrency_candidate_set.each do |candidate|
             # If the datastructuretree node is marked by concurrent candidate there is a conflict
             if operand.marking[candidate]
-                conflciting_set.add(candidate)
+                conflicting_set.add(candidate)
             end
         end
     end
@@ -253,7 +254,6 @@ def identify_race_conditions(root, concurrency_candidates, direct_access)
     # iterate through the nodes of the process tree in level order
     while !queue.empty?
         node = queue.shift
-        pp "Processing node #{node}"
         node.statements.each do |statement|
             # All operations that cannot be mapped exactly to a node
             write = statement.write?
