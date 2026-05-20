@@ -27,7 +27,7 @@ module DataStructureTree
         assert {data_elements.instance_of? Hash}
         trees = {}
         direct_access = {}
-        data_elements.each {|key, value| trees[key] = construct_tree(key, value, {})}
+        data_elements.each {|key, value| trees[key] = construct_tree(key, value, direct_access)}
 
         [trees, direct_access]
     end
@@ -36,17 +36,20 @@ module DataStructureTree
     # For complex data types (data structures), it constructs the tree recursively
     def self.construct_tree(name, element, direct_access)
         if element.instance_of? Hash
-            pp "hash"
             children = {}
-            element.each {|key, value| children[key] = construct_tree(name+"['"+key+"']", value, direct_access)}
-            node = ComplexNode.new(name, children)
+            element.each { |key, value|
+                # Construct child tree for every hash entry and store the root node under the original hash key 
+                children[key] = construct_tree(name+"['"+key+"']", value, direct_access)
+            }
+            node = HashNode.new(name, children)
         elsif element.instance_of? Array
-            pp "array"
             children = []
-            element.each_with_index {|value, idx| children << construct_tree(name+'['+idx.to_s+']', value, direct_access)}
-            node = ComplexNode.new(name, children)
+            element.each_with_index { |value, idx| 
+                # Construct child tree for every array entry and store the root node at the original index
+                children << construct_tree(name+'['+idx.to_s+']', value, direct_access)
+            }
+            node = ArrayNode.new(name, children)
         else
-            pp "simple"
             node = SimpleNode.new(name)
         end
         direct_access[name] = node
@@ -54,7 +57,10 @@ module DataStructureTree
     end
 
     class Node 
+        attr_accessor :name
+        
         def annotate(operation) end
+        def inspect = to_s
     end
 
     class SimpleNode < Node
@@ -62,35 +68,73 @@ module DataStructureTree
             @name = name
             @operations = {}
         end
-
-        def inspect = to_s
         
-        def to_s 
-            "SimpleNode(#{@name}, #{@operations})"
-        end
+        def to_s = "Simple(#{@name}, Operations: #{@operations})"
+
+        def contains?(other_node_name) = @name == other_node_name
 
         def annotate(operation)
         
         end
     end
 
-    class ComplexNode < Node
+    class ComplexNode < Node 
+        attr_accessor :children
+        attr_accessor :members
+
+        def contains?(other_node_name) = @members.include? other_node_name
+    end
+
+    class HashNode < ComplexNode
         def initialize(name, children)
+            assert { children.instance_of? Hash }
             @name = name
             @operations = {}
             @children = children
+            # Contains all nodes that write to the node or a specific subtree
+            @mark = []
+            # Contains all nodes that write to the node or a specific subtree
+            # Signifies that the whole subtree is marked (due to the actual target being unclear (dynamic indexing))
+            @mark_all = []
+            # Stores the name of all child nodes
+            @members = Set.new()
+            @members.add name
+            children.each do |key, child|
+                @members.add child.name
+                if child.is_a? ComplexNode
+                    @members.merge child.members
+                end
+            end
         end
-
-        attr_accessor :children
         
-        def inspect = to_s
-        
-        def to_s 
-            "Complex(#{@name}, #{@operations}, #{children.to_s})"
-        end
+        def to_s = "Hash(#{@name}, Operations: #{@operations}, Children: #{children})"
 
-        def annotate(operation)
-            
+    end
+
+    class ArrayNode < ComplexNode
+        def initialize(name, children)
+            assert { children.instance_of? Array }
+            @name = name
+            @operations = {}
+            @children = children
+            @members = Set.new([name])
+            children.each do |child|
+                @members.add(child.name)
+                if child.is_a?(HashNode) || child.instance_of?(ArrayNode)
+                    @members.union child.members
+                end
+            end
         end
+        
+        def to_s = "Array(#{@name}, Operations: #{@operations}, Children: #{children})"
     end
 end
+
+# data = {"a" => 3, "x" => { "y" => { "z" => [3, 4] } } } # 
+# data_structure_trees, direct_access = DataStructureTree::construct_trees(data)
+# tree_x = data_structure_trees["x"]
+# pp tree_x.members
+# pp tree_x.children
+# pp tree_x.contains? "x['y']"
+# pp tree_x.contains? "x['y']['z']"
+# pp data_structure_trees

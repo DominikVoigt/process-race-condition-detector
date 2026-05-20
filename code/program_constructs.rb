@@ -5,21 +5,38 @@ module ProgramConstructs
             @operations = operations
         end
 
-        def write?
-            @operations.last.write?
-        end
+        attr_accessor :operations
+
+        inspect = to_s
+
+        def to_s = "Statement: #{@operations}"
+
+        def write? = @operations.last.write?
+
+        def last = @operations.last
     end
 
     class Operation
         # Associated Variable, operators: Nodes in Data Structure tree
-        def initialize(op, associated_variable, operators)
-            @op = op
-            @associated_variable = associated_variable
-            @operators = operators
+        def initialize(name, target, operands, eval)
+            @name = name
+            @target = target
+            @operands = operands
+            @eval = eval
         end
 
+        attr_accessor :name
+        attr_accessor :target
+        attr_accessor :operands
+        attr_accessor :eval
+
+        def to_s = "Operation: #{@name}"
+
+        inspect = to_s
+
+
         def write?
-            op in Ops::WRITE_OPS
+            Ops::WRITE_OPS.include? @name
         end
     end
 end
