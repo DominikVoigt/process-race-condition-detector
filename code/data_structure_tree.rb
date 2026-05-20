@@ -70,12 +70,20 @@ module DataStructureTree
             operations[pt_node].add(operation)
         end
 
-        def mark(operation, pt_node) 
+        def mark(operation, pt_node, ccs) 
             # Add the operation to the set of the ProcessTreeNode that executed it
             if !operations.include? pt_node
-                operations[pt_node] = Set.new
+                marking[pt_node] = Set.new
             end 
-            operations[pt_node].add(operation)
+            marking[pt_node].add(operation)
+            # Check conflicts of equality methods in node
+            conflicts = []
+            ccs.each do |candidate|
+                if operations[candidate].include?(Ops::List::EQUAL) || operations[candidate].include?(Ops::Hash::EQUAL)
+                    conflicts.add candidate
+                end
+            end 
+            conflicts
         end
         
         def inspect = to_s

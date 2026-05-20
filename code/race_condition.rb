@@ -221,8 +221,11 @@ def compute_conflicts(operand, operation, concurrency_candidate_set, source)
     conflicting_set = Set.new
     # Recursive method (equality check on Complex types)
     if operation.name == Ops::Hash::EQUAL or operation.name == Ops::List::EQUAL
-        operand.marking.intersection(concurrency_candidate_set).each do |conflicting_node|
-            pp "Concurrent candidate marked node prior, conflict"
+        concurrency_candidate_set.each do |candidate|
+            # If the datastructuretree node is marked by concurrent candidate there is a conflict
+            if operand.marking[candidate]
+                conflciting_set.add(candidate)
+            end
         end
     end
     # Check for each annotation of a concurrency candidate whether it is conflicting
@@ -231,7 +234,7 @@ def compute_conflicts(operand, operation, concurrency_candidate_set, source)
             pp "Operand #{operand.name}, was annotated by concurrency candidate #{pt_node}: #{op_set}"
             # Check whether the operations done by the concurrency candidate are conflicting
             op_set.each do |annotated_op|
-                if conflicting? annotated_op, operation
+                if conflicting?(annotated_op, operation)
                     pp "Operation #{annotated_op} of PT node #{pt_node} is conflicting with operation #{operation} of PT node #{source}"
                     conflicting_set.add pt_node
                     break
@@ -259,7 +262,7 @@ def identify_race_conditions(root, concurrency_candidates, direct_access)
                 associated_variable = op.target
                 target.annotate(op, node)
                 if write and associated_variable.contains? target
-                    associated_variable.mark(op, node)
+                    race_condition_pairs.merge associated_variable.mark(op, node, concurrency_candidates[node])
                 end
                 race_condition_pairs.merge compute_conflicts(associated_variable, op, concurrency_candidates[node], node)
                 op.operands.each do |operand|
