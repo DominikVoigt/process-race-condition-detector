@@ -11,16 +11,18 @@ def compute_concurrency_candidates(node)
     return [map, Set[node]]
   end
 
+  
+
   # Node is a gateway
   children = node.children
   child_maps = []
   child_activity_sets = []
   children.each do |child|
     child_res = compute_concurrency_candidates(child) 
-    child_map = child_res[0]
     child_maps << child_res[0]
     child_activity_sets << child_res[1] 
   end
+
   if node.is_a?(ProcessTree::ParallelGateway)
     # For each other subtree,
     child_maps.each_with_index do |child, idx|
@@ -35,8 +37,7 @@ def compute_concurrency_candidates(node)
         end 
       end  
     end
-  end  
-
+  end
   activity_set = Set.new
   child_activity_sets.each do |child_activity_set|
     activity_set.merge child_activity_set
@@ -44,6 +45,11 @@ def compute_concurrency_candidates(node)
   map = {}
   child_maps.each do |child_map|
     map = map.merge child_map
+  end
+  # Since Choice and Loops contain statements, we need to add them to the "activity set" nad the map
+  if node.is_a?(ProcessTree::ChoiceGateway) || node.is_a?(ProcessTree::LoopGateway)
+    map[node] = Set.new    
+    activity_set.add node
   end
   
   return [map, activity_set]

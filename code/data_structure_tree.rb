@@ -1,7 +1,6 @@
 require "./assert.rb"
 
-module DataStructureTree
-
+module DataStructureTree#
     # Given the data elements as a hash: (key: element identifier, value:value)
     # Outputs a tree for every "root" data element in the hash
     # All other data elements (e.g., members of root hash data elements) are nodes under their associated data structure tree node (e.g., the node of the hash data element)
@@ -61,34 +60,10 @@ module DataStructureTree
         attr_accessor :operations
         attr_accessor :marking
         
-        # Annotate the DataStructureTree node with the operation
-        def annotate(operation, pt_node) 
-            # Add the operation to the set of the ProcessTreeNode that executed it
-            if !operations.include? pt_node
-                operations[pt_node] = Set.new
-            end 
-            operations[pt_node].add(operation)
-        end
-
-        def mark(operation, pt_node, ccs) 
-            # Add the operation to the set of the ProcessTreeNode that executed it
-            if !operations.include? pt_node
-                marking[pt_node] = Set.new
-            end 
-            marking[pt_node].add(operation)
-            # Check conflicts of equality methods in node
-            conflicts = []
-            ccs.each do |candidate|
-                if operations[candidate].include?(Ops::List::EQUAL) || operations[candidate].include?(Ops::Hash::EQUAL)
-                    conflicts.add candidate
-                end
-            end 
-            conflicts
-        end
-        
         def inspect = to_s
     end
 
+    # Node representing a simple data element
     class SimpleNode < Node
         def initialize(name)
             @name = name
@@ -96,18 +71,75 @@ module DataStructureTree
             @marking = {}
         end
         
-        def to_s = "Simple(#{@name}, Operations: #{@operations})"
+        def to_s = "Simple(#{@name})"
 
-        def contains?(other_node_name) = @name == other_node_name
+        def contains?(other_node) = @name == other_node.name
+
+        # Annotate the DataStructureTree node with the operation if it is representing the associated variable
+        # If it is representing an operand it will annotate it with the eval operation of the correct type
+        def annotate(operation, pt_node) 
+            # Ensure the annotations are of a valid type
+            assert { !operation.name.to_s.start_with? "list"}
+            assert { !operation.name.to_s.start_with? "hash"}
+
+            # Add the operation to the set of the ProcessTreeNode that executed it
+            if !operations.include? pt_node
+                operations[pt_node] = Set.new
+            end 
+            operations[pt_node].add(operation)
+        end
+
+        # NO OP for simple nodes
+        def mark(operation, pt_node, ccs) 
+            []
+        end
     end
 
+    # Node representing a complex data element, either hash or array
     class ComplexNode < Node 
         attr_accessor :children
         attr_accessor :members
 
-        def contains?(other_node_name) = @members.include? other_node_name
+        def contains?(other_node) = @members.include? other_node.name
         
-        def mark(operation, node) 
+        # Annotate the DataStructureTree node with the operation if it is representing the associated variable
+        # If it is representing an operand it will annotate it either with the operation, if it is an equality operation,
+        # or with the eval operation of the correct type (only equality needs to be treated specifically for hashes and arrays) 
+        # is_target: Whether the node is the target/associated variable of the operation
+        def annotate(operation, pt_node) 
+
+            # Ensure the annotations are of a valid type
+            assert { (operation.name.to_s.start_with?("list") || operation.name.to_s.start_with?("hash")) }
+
+            # Add the operation to the set of the ProcessTreeNode that executed it
+            if !operations.include? pt_node
+                operations[pt_node] = Set.new
+            end 
+            operations[pt_node].add(operation)
+        end
+
+        # TODO: Write test where we detect the conflict when placing the marking
+        def mark(operation, pt_node, ccs)
+            pp "Marking node #{self} due to PT Node: #{pt_node}"
+            # Add markign flag for the activity that will modify some subtree
+            marking[pt_node] = true
+            # Check conflicts of equality methods in node
+            conflicts = []
+            ccs.each do |candidate|
+                if operations[candidate].nil?
+                    # Annotated before the concurrency candidate
+                    next
+                end
+                # Check whether any concurrency candidate did annotate the node with an equality operation on a complex type
+                operations[candidate].each do |cand_op|
+                    if cand_op.name == Ops::List::EQUAL || cand_op.name == Ops::Hash::EQUAL
+                        pp "When marking the node due to a write operation on the subtree by node #{pt_node}, identified equality check by concurreny candidate node #{candidate}" 
+                        conflicts << [pt_node, candidate]
+                        break
+                    end
+                end
+            end 
+            conflicts
         end
     
     end

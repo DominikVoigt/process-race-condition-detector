@@ -42,8 +42,25 @@ module ProcessTree
             @conditions = conditions
             @statements = @conditions
         end
+
+        def inspect = to_s
+        def to_s = "ChoiceGateway"
+    end
+
+    class LoopGateway < Gateway
+        def initialize(body, condition)
+            @children = [body]
+            # Conditions include conditions for all branches 
+            # Each condition is a statement
+            @condition = condition
+            @statements = [@condition]
+        end
     end
 
     class SequenceGateway < Gateway
+        def initialize(children)
+            @children = children
+            @statements = []
+        end
     end
 end
