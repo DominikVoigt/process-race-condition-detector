@@ -10,4 +10,4 @@ The Code that computes whether operations are conflicting can be found in [`prog
 
 A set of test cases can be found here [`tests.rb`](./code/tests.rb).
 
-To run the test cases, please go into the `code` subdirectory and execute `ruby ./tests.rb`
+To run the test cases, please go into the [`code`](./code) subdirectory and execute `ruby ./tests.rb`
